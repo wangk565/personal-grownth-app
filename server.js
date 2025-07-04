@@ -72,9 +72,18 @@ db.serialize(() => {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users (id)
   )`);
-});
 
-// API路由
+  // 知识分类表
+  db.run(`CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // 插入默认分类
+  db.run(`INSERT OR IGNORE INTO categories (name) VALUES 
+    ('技术学习'), ('读书笔记'), ('生活感悟'), ('工作经验'), ('其他')`);
+});
 
 // 灵感相关API
 app.get('/api/inspirations', (req, res) => {
@@ -93,6 +102,24 @@ app.post('/api/inspirations', (req, res) => {
     });
 });
 
+app.put('/api/inspirations/:id', (req, res) => {
+  const { id } = req.params;
+  const { content, tags } = req.body;
+  db.run('UPDATE inspirations SET content = ?, tags = ? WHERE id = ?',
+    [content, tags, id], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: 'Inspiration updated successfully' });
+    });
+});
+
+app.delete('/api/inspirations/:id', (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM inspirations WHERE id = ?', [id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'Inspiration deleted successfully' });
+  });
+});
+
 // 知识学习相关API
 app.get('/api/knowledge', (req, res) => {
   db.all('SELECT * FROM knowledge ORDER BY created_at DESC', (err, rows) => {
@@ -108,6 +135,24 @@ app.post('/api/knowledge', (req, res) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ id: this.lastID, title, content, category, source });
     });
+});
+
+app.put('/api/knowledge/:id', (req, res) => {
+  const { id } = req.params;
+  const { title, content, category, source } = req.body;
+  db.run('UPDATE knowledge SET title = ?, content = ?, category = ?, source = ? WHERE id = ?',
+    [title, content, category, source, id], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: 'Knowledge updated successfully' });
+    });
+});
+
+app.delete('/api/knowledge/:id', (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM knowledge WHERE id = ?', [id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'Knowledge deleted successfully' });
+  });
 });
 
 // 任务相关API
@@ -129,14 +174,22 @@ app.post('/api/tasks', (req, res) => {
 
 app.put('/api/tasks/:id', (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { title, description, priority, due_date, status } = req.body;
   const completed_at = status === 'completed' ? new Date().toISOString() : null;
   
-  db.run('UPDATE tasks SET status = ?, completed_at = ? WHERE id = ?',
-    [status, completed_at, id], function(err) {
+  db.run('UPDATE tasks SET title = ?, description = ?, priority = ?, due_date = ?, status = ?, completed_at = ? WHERE id = ?',
+    [title, description, priority, due_date, status, completed_at, id], function(err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ message: 'Task updated successfully' });
     });
+});
+
+app.delete('/api/tasks/:id', (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM tasks WHERE id = ?', [id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'Task deleted successfully' });
+  });
 });
 
 // 目标相关API
@@ -153,6 +206,128 @@ app.post('/api/goals', (req, res) => {
     [1, title, description, type, target_date], function(err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ id: this.lastID, title, description, type, target_date, status: 'active', progress: 0 });
+    });
+});
+
+app.put('/api/goals/:id', (req, res) => {
+  const { id } = req.params;
+  const { title, description, type, target_date, progress, status } = req.body;
+  
+  db.run('UPDATE goals SET title = ?, description = ?, type = ?, target_date = ?, progress = ?, status = ? WHERE id = ?',
+    [title, description, type, target_date, progress, status, id], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: 'Goal updated successfully' });
+    });
+});
+
+app.delete('/api/goals/:id', (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM goals WHERE id = ?', [id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'Goal deleted successfully' });
+  });
+});
+
+// 分类相关API
+app.get('/api/categories', (req, res) => {
+  db.all('SELECT * FROM categories ORDER BY name', (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+app.post('/api/categories', (req, res) => {
+  const { name } = req.body;
+  db.run('INSERT INTO categories (name) VALUES (?)', [name], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ id: this.lastID, name });
+  });
+});
+
+// 统计数据API
+app.get('/api/statistics', (req, res) => {
+  const stats = {};
+  
+  // 获取灵感数量
+  db.get('SELECT COUNT(*) as count FROM inspirations', (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    stats.inspirations = row.count;
+    
+    // 获取知识数量
+    db.get('SELECT COUNT(*) as count FROM knowledge', (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      stats.knowledge = row.count;
+      
+      // 获取任务统计
+      db.all('SELECT status, COUNT(*) as count FROM tasks GROUP BY status', (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        const taskStats = { pending: 0, in_progress: 0, completed: 0 };
+        rows.forEach(row => {
+          taskStats[row.status] = row.count;
+        });
+        
+        const totalTasks = taskStats.pending + taskStats.in_progress + taskStats.completed;
+        stats.tasks = {
+          total: totalTasks,
+          completed: taskStats.completed,
+          percentage: totalTasks > 0 ? Math.round((taskStats.completed / totalTasks) * 100) : 0
+        };
+        
+        // 获取目标统计
+        db.get('SELECT AVG(progress) as avgProgress, COUNT(*) as total FROM goals', (err, row) => {
+          if (err) return res.status(500).json({ error: err.message });
+          
+          stats.goals = {
+            total: row.total,
+            averageProgress: Math.round(row.avgProgress || 0)
+          };
+          
+          res.json(stats);
+        });
+      });
+    });
+  });
+});
+
+// 全局搜索API
+app.get('/api/search', (req, res) => {
+  const { q } = req.query;
+  if (!q) return res.json([]);
+  
+  const searchTerm = `%${q}%`;
+  const results = [];
+  
+  // 搜索灵感
+  db.all('SELECT id, content as title, content, tags, created_at, "inspiration" as type FROM inspirations WHERE content LIKE ? OR tags LIKE ?', 
+    [searchTerm, searchTerm], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      results.push(...rows);
+      
+      // 搜索知识
+      db.all('SELECT id, title, content, category, source, created_at, "knowledge" as type FROM knowledge WHERE title LIKE ? OR content LIKE ? OR category LIKE ?', 
+        [searchTerm, searchTerm, searchTerm], (err, rows) => {
+          if (err) return res.status(500).json({ error: err.message });
+          results.push(...rows);
+          
+          // 搜索任务
+          db.all('SELECT id, title, description as content, status, priority, created_at, "task" as type FROM tasks WHERE title LIKE ? OR description LIKE ?', 
+            [searchTerm, searchTerm], (err, rows) => {
+              if (err) return res.status(500).json({ error: err.message });
+              results.push(...rows);
+              
+              // 搜索目标
+              db.all('SELECT id, title, description as content, type as goal_type, progress, created_at, "goal" as type FROM goals WHERE title LIKE ? OR description LIKE ?', 
+                [searchTerm, searchTerm], (err, rows) => {
+                  if (err) return res.status(500).json({ error: err.message });
+                  results.push(...rows);
+                  
+                  // 按时间排序返回结果
+                  results.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                  res.json(results);
+                });
+            });
+        });
     });
 });
 

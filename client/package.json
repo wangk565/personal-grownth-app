@@ -5,69 +5,71 @@
     "private": true,
     "homepage": ".",
     "dependencies": {
-      "@testing-library/jest-dom": "^5.17.0",
-      "@testing-library/react": "^13.4.0",
-      "@testing-library/user-event": "^14.5.2",
-      "axios": "^1.6.0",
-      "react": "^18.2.0",
-      "react-dom": "^18.2.0",
-      "react-scripts": "5.0.1",
-      "web-vitals": "^2.1.4"
+        "@testing-library/jest-dom": "^5.17.0",
+        "@testing-library/react": "^13.4.0",
+        "@testing-library/user-event": "^14.5.2",
+        "axios": "^1.6.0",
+        "chart.js": "^4.5.0",
+        "react": "^18.2.0",
+        "react-chartjs-2": "^5.3.0",
+        "react-dom": "^18.2.0",
+        "react-scripts": "5.0.1",
+        "web-vitals": "^2.1.4"
     },
     "scripts": {
-      "start": "react-scripts start",
-      "build": "react-scripts build",
-      "test": "react-scripts test",
-      "eject": "react-scripts eject",
-      "analyze": "npm run build && npx serve -s build",
-      "lint": "eslint src/**/*.{js,jsx}",
-      "lint:fix": "eslint src/**/*.{js,jsx} --fix"
+        "start": "react-scripts start",
+        "build": "react-scripts build",
+        "test": "react-scripts test",
+        "eject": "react-scripts eject",
+        "analyze": "npm run build && npx serve -s build",
+        "lint": "eslint src/**/*.{js,jsx}",
+        "lint:fix": "eslint src/**/*.{js,jsx} --fix"
     },
     "eslintConfig": {
-      "extends": [
-        "react-app",
-        "react-app/jest"
-      ],
-      "rules": {
-        "no-unused-vars": "warn",
-        "no-console": "warn"
-      }
+        "extends": [
+            "react-app",
+            "react-app/jest"
+        ],
+        "rules": {
+            "no-unused-vars": "warn",
+            "no-console": "warn"
+        }
     },
     "browserslist": {
-      "production": [
-        ">0.2%",
-        "not dead",
-        "not op_mini all"
-      ],
-      "development": [
-        "last 1 chrome version",
-        "last 1 firefox version",
-        "last 1 safari version"
-      ]
+        "production": [
+            ">0.2%",
+            "not dead",
+            "not op_mini all"
+        ],
+        "development": [
+            "last 1 chrome version",
+            "last 1 firefox version",
+            "last 1 safari version"
+        ]
     },
     "devDependencies": {
-      "eslint": "^8.52.0"
+        "eslint": "^8.52.0"
     },
     "proxy": "http://localhost:3001",
     "keywords": [
-      "personal-growth",
-      "task-management",
-      "goal-tracking",
-      "inspiration",
-      "knowledge-management",
-      "react",
-      "frontend"
+        "personal-growth",
+        "task-management",
+        "goal-tracking",
+        "inspiration",
+        "knowledge-management",
+        "react",
+        "frontend"
     ],
     "author": {
-      "name": "Personal Growth App Team",
-      "email": "support@personal-growth-app.com"
+        "name": "Personal Growth App Team",
+        "email": "support@personal-growth-app.com"
     },
     "license": "MIT",
     "repository": {
-      "type": "git",
-      "url": "https://github.com/yourusername/personal-growth-app.git"
+        "type": "git",
+        "url": "https://github.com/yourusername/personal-growth-app.git"
     },
     "bugs": {
-      "url": "https://github.com/yourusername/personal-growth-app/issues"
+        "url": "https://github.com/yourusername/personal-growth-app/issues"
     }
-  }
+}
