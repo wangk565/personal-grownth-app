@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#007bff" />
+    <meta name="description" content="个人成长管理应用 - 记录灵感、学习知识、管理任务、规划目标" />
+    <meta name="keywords" content="个人成长,任务管理,目标规划,灵感记录,知识管理" />
+    <meta name="author" content="Personal Growth App" />
+    
+    <!-- 苹果设备元标签 -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="个人成长" />
+    
+    <!-- PWA 相关 -->
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- 字体预加载 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- 基础样式重置 -->
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #f8f9fa;
+        color: #212529;
+        line-height: 1.6;
+      }
+      
+      code {
+        font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+      }
+      
+      /* 加载动画 */
+      .loading-spinner {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        flex-direction: column;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top: 4px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      .loading-text {
+        font-size: 18px;
+        font-weight: 500;
+        margin-bottom: 10px;
+      }
+      
+      .loading-subtitle {
+        font-size: 14px;
+        opacity: 0.8;
+      }
+      
+      /* 无JavaScript提示样式 */
+      .noscript-warning {
+        background: #dc3545;
+        color: white;
+        padding: 15px;
+        text-align: center;
+        font-weight: 500;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 9999;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      }
+      
+      /* 根容器样式 */
+      #root {
+        min-height: 100vh;
+        width: 100%;
+      }
+      
+      /* 响应式设计 */
+      @media (max-width: 768px) {
+        .loading-text {
+          font-size: 16px;
+        }
+        
+        .loading-subtitle {
+          font-size: 12px;
+        }
+      }
+    </style>
+    
+    <title>个人成长管理 - 让每一天都有成长</title>
+  </head>
+  
+  <body>
+    <noscript>
+      <div class="noscript-warning">
+        ⚠️ 您需要启用 JavaScript 来运行此应用程序。请在浏览器设置中启用 JavaScript 并刷新页面。
+      </div>
+    </noscript>
+    
+    <!-- React 应用挂载点 -->
+    <div id="root">
+      <!-- 应用加载时显示的内容 -->
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+        <div class="loading-text">个人成长管理</div>
+        <div class="loading-subtitle">正在加载您的成长空间...</div>
+      </div>
+    </div>
+    
+    <!-- 应用启动脚本 -->
+    <script>
+      // 性能监控
+      if ('performance' in window) {
+        window.addEventListener('load', function() {
+          setTimeout(function() {
+            const perfData = performance.timing;
+            const loadTime = perfData.loadEventEnd - perfData.navigationStart;
+            console.log('页面加载时间:', loadTime + 'ms');
+          }, 0);
+        });
+      }
+      
+      // 服务工作者注册（PWA支持）
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+              console.log('SW registered: ', registration);
+            })
+            .catch(function(registrationError) {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+      
+      // 应用错误处理
+      window.addEventListener('error', function(e) {
+        console.error('应用发生错误:', e.error);
+        // 可以在这里添加错误上报逻辑
+      });
+      
+      // 未处理的Promise错误
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('未处理的Promise错误:', e.reason);
+        // 可以在这里添加错误上报逻辑
+      });
+    </script>
+  </body>
+</html>

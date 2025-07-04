@@ -1,0 +1,242 @@
+.App {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
+  
+  .app-header {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+  }
+  
+  .app-header h1 {
+    margin: 0 0 20px 0;
+    color: #333;
+    text-align: center;
+  }
+  
+  nav {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  
+  nav button {
+    padding: 10px 20px;
+    border: none;
+    background: #e9ecef;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  
+  nav button:hover {
+    background: #dee2e6;
+  }
+  
+  nav button.active {
+    background: #007bff;
+    color: white;
+  }
+  
+  .main-content {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+  
+  .tab-content h2 {
+    margin-bottom: 30px;
+    color: #333;
+  }
+  
+  .form {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .form input, .form textarea, .form select {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+  }
+  
+  .form textarea {
+    min-height: 100px;
+    resize: vertical;
+  }
+  
+  .form button {
+    padding: 12px 24px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s;
+  }
+  
+  .form button:hover {
+    background: #0056b3;
+  }
+  
+  .items-list {
+    display: grid;
+    gap: 20px;
+  }
+  
+  .item-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .item-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  
+  .item-card h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+  }
+  
+  .item-card p {
+    margin: 0 0 15px 0;
+    color: #666;
+    line-height: 1.5;
+  }
+  
+  .item-meta {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+    font-size: 14px;
+    color: #888;
+  }
+  
+  .tags {
+    background: #e3f2fd;
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: #1976d2;
+  }
+  
+  .category {
+    background: #f3e5f5;
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: #7b1fa2;
+  }
+  
+  .source {
+    background: #e8f5e8;
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: #388e3c;
+  }
+  
+  .task-card.completed {
+    opacity: 0.7;
+    background: #f8f9fa;
+  }
+  
+  .task-actions {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  
+  .priority {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+  
+  .priority.low { background: #e8f5e8; color: #2e7d32; }
+  .priority.medium { background: #fff3e0; color: #f57c00; }
+  .priority.high { background: #ffebee; color: #d32f2f; }
+  
+  .goal-card .goal-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .goal-type {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-block;
+    width: fit-content;
+  }
+  
+  .goal-type.weekly { background: #e3f2fd; color: #1976d2; }
+  .goal-type.monthly { background: #f3e5f5; color: #7b1fa2; }
+  .goal-type.yearly { background: #fff3e0; color: #f57c00; }
+  
+  .progress {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    background: #28a745;
+    transition: width 0.3s;
+  }
+  
+  .due-date {
+    color: #dc3545;
+    font-weight: bold;
+  }
+  
+  @media (max-width: 768px) {
+    .App {
+      padding: 10px;
+    }
+    
+    nav {
+      flex-wrap: wrap;
+    }
+    
+    .main-content {
+      padding: 20px;
+    }
+    
+    .item-meta {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .task-actions {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
