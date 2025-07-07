@@ -290,6 +290,49 @@ app.get('/api/statistics', (req, res) => {
   });
 });
 
+// 新增：获取每日灵感创建趋势
+app.get('/api/inspirations/daily', (req, res) => {
+  db.all(`
+    SELECT DATE(created_at) as date, COUNT(*) as count 
+    FROM inspirations 
+    GROUP BY date 
+    ORDER BY date ASC
+  `, (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// 新增：获取每日知识创建趋势
+app.get('/api/knowledge/daily', (req, res) => {
+  db.all(`
+    SELECT DATE(created_at) as date, COUNT(*) as count 
+    FROM knowledge 
+    GROUP BY date 
+    ORDER BY date ASC
+  `, (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// 新增：获取目标完成状态分布
+app.get('/api/goals/status-distribution', (req, res) => {
+  db.all('SELECT status, COUNT(*) as count FROM goals GROUP BY status', (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    const distribution = { active: 0, completed: 0 };
+    rows.forEach(row => {
+      if (row.status === 'completed') {
+        distribution.completed = row.count;
+      } else {
+        distribution.active += row.count;
+      }
+    });
+    res.json(distribution);
+  });
+});
+
+
 // 全局搜索API
 app.get('/api/search', (req, res) => {
   const { q } = req.query;
