@@ -54,6 +54,7 @@ export const goals = {
   create: (data) => apiClient.post('/goals', data),
   update: (id, data) => apiClient.put(`/goals/${id}`, data),
   delete: (id) => apiClient.delete(`/goals/${id}`),
+  getTasks: (id) => apiClient.get(`/goals/${id}/tasks`),
 };
 
 // 分类 API

@@ -56,7 +56,11 @@ db.serialize(() => {
     due_date DATE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     completed_at DATETIME,
-    FOREIGN KEY (user_id) REFERENCES users (id)
+    parent_task_id INTEGER,
+    goal_id INTEGER,
+    FOREIGN KEY (user_id) REFERENCES users (id),
+    FOREIGN KEY (parent_task_id) REFERENCES tasks (id) ON DELETE SET NULL,
+    FOREIGN KEY (goal_id) REFERENCES goals (id) ON DELETE SET NULL
   )`);
   db.run(`CREATE TABLE IF NOT EXISTS goals (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -220,21 +224,29 @@ app.get('/api/tasks', authenticateToken, (req, res) => {
   });
   
   app.post('/api/tasks', authenticateToken, (req, res) => {
-    const { title, description, priority, due_date } = req.body;
-    db.run('INSERT INTO tasks (user_id, title, description, priority, due_date) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, title, description, priority, due_date], function(err) {
+    const { title, description, priority, due_date, parent_task_id, goal_id } = req.body;
+    // Ensure empty strings or other falsy values become null for foreign keys
+    const final_parent_id = parent_task_id ? parent_task_id : null;
+    const final_goal_id = goal_id ? goal_id : null;
+
+    db.run('INSERT INTO tasks (user_id, title, description, priority, due_date, parent_task_id, goal_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [req.user.id, title, description, priority, due_date, final_parent_id, final_goal_id], function(err) {
         if (err) return res.status(500).json({ error: err.message });
-        res.json({ id: this.lastID, title, description, priority, due_date, status: 'pending' });
+        res.json({ id: this.lastID, title, description, priority, due_date, status: 'pending', parent_task_id: final_parent_id, goal_id: final_goal_id });
       });
   });
   
   app.put('/api/tasks/:id', authenticateToken, (req, res) => {
     const { id } = req.params;
-    const { title, description, priority, due_date, status } = req.body;
+    const { title, description, priority, due_date, status, parent_task_id, goal_id } = req.body;
     const completed_at = status === 'completed' ? new Date().toISOString() : null;
     
-    db.run('UPDATE tasks SET title = ?, description = ?, priority = ?, due_date = ?, status = ?, completed_at = ? WHERE id = ? AND user_id = ?',
-      [title, description, priority, due_date, status, completed_at, id, req.user.id], function(err) {
+    // Ensure empty strings or other falsy values become null for foreign keys
+    const final_parent_id = parent_task_id ? parent_task_id : null;
+    const final_goal_id = goal_id ? goal_id : null;
+
+    db.run('UPDATE tasks SET title = ?, description = ?, priority = ?, due_date = ?, status = ?, completed_at = ?, parent_task_id = ?, goal_id = ? WHERE id = ? AND user_id = ?',
+      [title, description, priority, due_date, status, completed_at, final_parent_id, final_goal_id, id, req.user.id], function(err) {
         if (err) return res.status(500).json({ error: err.message });
         if (this.changes === 0) return res.status(404).json({ error: '记录未找到或无权修改' });
         res.json({ message: 'Task updated successfully' });
@@ -287,6 +299,15 @@ app.get('/api/goals', authenticateToken, (req, res) => {
       res.json({ message: 'Goal deleted successfully' });
     });
   });
+
+// 获取目标下的所有任务
+app.get('/api/goals/:id/tasks', authenticateToken, (req, res) => {
+  const { id } = req.params;
+  db.all('SELECT * FROM tasks WHERE goal_id = ? AND user_id = ?', [id, req.user.id], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
 
 // 分类相关API
 app.get('/api/categories', authenticateToken, (req, res) => {

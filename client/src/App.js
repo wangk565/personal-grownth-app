@@ -7,7 +7,7 @@ import LoginPage from './components/LoginPage';
 import { AuthContext } from './context/AuthContext';
 import * as api from './services/api';
 import {
-  AppBar, Box, Button, Card, CardContent, CardActions, CircularProgress, Container, Grid, Tabs, Tab, Toolbar, Typography, TextField, Select, MenuItem, FormControl, InputLabel, Slider, IconButton, Chip
+  AppBar, Box, Button, Card, CardContent, CardActions, CircularProgress, Container, Grid, Tabs, Tab, Toolbar, Typography, TextField, Select, MenuItem, FormControl, InputLabel, Slider, IconButton, Chip, Snackbar, Alert
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -25,12 +25,14 @@ function App() {
   const [categories, setCategories] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [tasksForGoal, setTasksForGoal] = useState({ show: false, tasks: [] });
+  const [error, setError] = useState(null);
 
   const [editModal, setEditModal] = useState({ show: false, type: '', data: null });
 
   const [inspirationForm, setInspirationForm] = useState({ content: '', tags: '' });
   const [knowledgeForm, setKnowledgeForm] = useState({ title: '', content: '', category: '', source: '' });
-  const [taskForm, setTaskForm] = useState({ title: '', description: '', priority: 'medium', due_date: '' });
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', priority: 'medium', due_date: '', parent_task_id: '', goal_id: '' });
   const [goalForm, setGoalForm] = useState({ title: '', description: '', type: 'weekly', target_date: '' });
   const [newCategory, setNewCategory] = useState('');
 
@@ -141,12 +143,18 @@ function App() {
 
   const handleTaskSubmit = async (e) => {
     e.preventDefault();
+    const taskData = {
+      ...taskForm,
+      parent_task_id: taskForm.parent_task_id || null,
+      goal_id: taskForm.goal_id || null,
+    };
     try {
-      await api.tasks.create(taskForm);
-      setTaskForm({ title: '', description: '', priority: 'medium', due_date: '' });
+      await api.tasks.create(taskData);
+      setTaskForm({ title: '', description: '', priority: 'medium', due_date: '', parent_task_id: '', goal_id: '' });
       fetchTasks();
     } catch (error) {
       console.error('Error adding task:', error);
+      setError(error.response?.data?.error || '添加任务失败');
     }
   };
 
@@ -189,12 +197,29 @@ function App() {
 
   const handleSaveEdit = async (type, id, data) => {
     if (!apiMap[type]) return;
+
+    const dataToSave = { ...data };
+    if (type === 'tasks') {
+      dataToSave.parent_task_id = data.parent_task_id || null;
+      dataToSave.goal_id = data.goal_id || null;
+    }
+
     try {
-      await apiMap[type].update(id, data);
+      await apiMap[type].update(id, dataToSave);
       setEditModal({ show: false, type: '', data: null });
       fetchAllData();
     } catch (error) {
       console.error(`Error updating ${type}:`, error);
+      setError(error.response?.data?.error || `更新${type}失败`);
+    }
+  };
+
+  const showGoalTasks = async (goalId) => {
+    try {
+      const response = await api.goals.getTasks(goalId);
+      setTasksForGoal({ show: true, tasks: response.data });
+    } catch (error) {
+      console.error('Error fetching tasks for goal:', error);
     }
   };
 
@@ -223,6 +248,40 @@ function App() {
     return new Date(dateString).toLocaleDateString('zh-CN');
   };
 
+  const renderTaskTree = (task, level) => {
+    const children = tasks.filter(child => child.parent_task_id === task.id);
+    const goal = goals.find(g => g.id === task.goal_id);
+
+    return (
+      <React.Fragment key={task.id}>
+        <Grid item xs={12} style={{ paddingLeft: `${level * 32}px` }}>
+            <Card elevation={2} sx={{ mb: 2 }}>
+                <CardContent>
+                    <Typography variant="h6" gutterBottom>{task.title}</Typography>
+                    {goal && <Chip label={`目标: ${goal.title}`} size="small" sx={{ mt: 1 }} />}
+                    <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>{task.description}</Typography>
+                    <Chip label={`优先级: ${task.priority}`} size="small" sx={{ mt: 1 }} />
+                    <Typography variant="caption" display="block" sx={{ mt: 1 }}>截止日期: {formatDate(task.due_date)}</Typography>
+                </CardContent>
+                <CardActions>
+                    <FormControl fullWidth size="small">
+                        <InputLabel>状态</InputLabel>
+                        <Select value={task.status} label="状态" onChange={(e) => updateTaskStatus(task.id, e.target.value)}>
+                            <MenuItem value="pending">待完成</MenuItem>
+                            <MenuItem value="in_progress">进行中</MenuItem>
+                            <MenuItem value="completed">已完成</MenuItem>
+                        </Select>
+                    </FormControl>
+                    <IconButton size="small" onClick={() => handleEdit('tasks', task)}><EditIcon /></IconButton>
+                    <IconButton size="small" onClick={() => handleDelete('tasks', task.id)}><DeleteIcon /></IconButton>
+                </CardActions>
+            </Card>
+        </Grid>
+        {children.map(child => renderTaskTree(child, level + 1))}
+      </React.Fragment>
+    );
+  };
+
   if (loading) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><CircularProgress /></Box>;
   }
@@ -232,6 +291,17 @@ function App() {
   }
 
   const renderContent = () => {
+    if (tasksForGoal.show) {
+        return (
+            <>
+                <Button onClick={() => setTasksForGoal({ show: false, tasks: [] })}>返回目标列表</Button>
+                <Grid container spacing={3} justifyContent="center">
+                    {tasksForGoal.tasks.map(item => renderTaskTree(item, 0))}
+                </Grid>
+            </>
+        )
+    }
+
     if (isSearching) {
         return (
             <Grid container spacing={3}>
@@ -346,34 +416,25 @@ function App() {
                                 </Select>
                             </FormControl>
                             <TextField type="date" label="截止日期" fullWidth value={taskForm.due_date} onChange={(e) => setTaskForm({...taskForm, due_date: e.target.value})} InputLabelProps={{ shrink: true }} sx={{ mb: 2 }} />
+                            <FormControl fullWidth sx={{ mb: 2 }}>
+                                <InputLabel>关联目标</InputLabel>
+                                <Select value={taskForm.goal_id} label="关联目标" onChange={(e) => setTaskForm({...taskForm, goal_id: e.target.value})}>
+                                    <MenuItem value=""><em>无</em></MenuItem>
+                                    {goals.map(goal => <MenuItem key={goal.id} value={goal.id}>{goal.title}</MenuItem>)}
+                                </Select>
+                            </FormControl>
+                            <FormControl fullWidth sx={{ mb: 2 }}>
+                                <InputLabel>父任务</InputLabel>
+                                <Select value={taskForm.parent_task_id} label="父任务" onChange={(e) => setTaskForm({...taskForm, parent_task_id: e.target.value})}>
+                                    <MenuItem value=""><em>无</em></MenuItem>
+                                    {tasks.filter(task => !task.parent_task_id).map(task => <MenuItem key={task.id} value={task.id}>{task.title}</MenuItem>)}
+                                </Select>
+                            </FormControl>
                             <Button type="submit" variant="contained">添加任务</Button>
                         </Card>
                     )}
                     <Grid container spacing={3} justifyContent="center">
-                        {tasks.map(item => (
-                            <Grid item xs={12} sm={6} md={4} key={item.id}>
-                                <Card elevation={2}>
-                                    <CardContent>
-                                        <Typography variant="h6" gutterBottom>{item.title}</Typography>
-                                        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>{item.description}</Typography>
-                                        <Chip label={`优先级: ${item.priority}`} size="small" sx={{ mt: 1 }} />
-                                        <Typography variant="caption" display="block" sx={{ mt: 1 }}>截止日期: {formatDate(item.due_date)}</Typography>
-                                    </CardContent>
-                                    <CardActions>
-                                        <FormControl fullWidth size="small">
-                                            <InputLabel>状态</InputLabel>
-                                            <Select value={item.status} label="状态" onChange={(e) => updateTaskStatus(item.id, e.target.value)}>
-                                                <MenuItem value="pending">待完成</MenuItem>
-                                                <MenuItem value="in_progress">进行中</MenuItem>
-                                                <MenuItem value="completed">已完成</MenuItem>
-                                            </Select>
-                                        </FormControl>
-                                        <IconButton size="small" onClick={() => handleEdit('tasks', item)}><EditIcon /></IconButton>
-                                        <IconButton size="small" onClick={() => handleDelete('tasks', item.id)}><DeleteIcon /></IconButton>
-                                    </CardActions>
-                                </Card>
-                            </Grid>
-                        ))}
+                        {tasks.filter(task => !task.parent_task_id).map(item => renderTaskTree(item, 0))}
                     </Grid>
                 </>
             );
@@ -412,6 +473,7 @@ function App() {
                                     <CardActions>
                                         <IconButton size="small" onClick={() => handleEdit('goals', item)}><EditIcon /></IconButton>
                                         <IconButton size="small" onClick={() => handleDelete('goals', item.id)}><DeleteIcon /></IconButton>
+                                        <Button size="small" onClick={() => showGoalTasks(item.id)}>查看任务</Button>
                                     </CardActions>
                                 </Card>
                             </Grid>
@@ -457,10 +519,18 @@ function App() {
           type={editModal.type}
           data={editModal.data}
           categories={categories}
+          tasks={tasks}
+          goals={goals}
           onSave={handleSaveEdit}
           onClose={() => setEditModal({ show: false, type: '', data: null })}
         />
       )}
+
+      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
+        <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

@@ -14,7 +14,7 @@ import {
   Typography
 } from '@mui/material';
 
-const EditModal = ({ type, data, categories, onSave, onClose }) => {
+const EditModal = ({ type, data, categories, tasks, goals, onSave, onClose }) => {
   const [formData, setFormData] = useState({});
 
   useEffect(() => {
@@ -32,7 +32,12 @@ const EditModal = ({ type, data, categories, onSave, onClose }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(type, data.id, formData);
+    const dataToSave = { ...formData };
+    if (type === 'tasks') {
+      dataToSave.parent_task_id = formData.parent_task_id || null;
+      dataToSave.goal_id = formData.goal_id || null;
+    }
+    onSave(type, data.id, dataToSave);
   };
 
   const handleChange = (field, value) => {
@@ -102,6 +107,20 @@ const EditModal = ({ type, data, categories, onSave, onClose }) => {
                     </Select>
                 </FormControl>
                 <TextField margin="dense" label="截止日期" type="date" fullWidth InputLabelProps={{ shrink: true }} value={formData.due_date || ''} onChange={(e) => handleChange('due_date', e.target.value)} />
+                <FormControl fullWidth margin="dense">
+                    <InputLabel>关联目标</InputLabel>
+                    <Select value={formData.goal_id || ''} label="关联目标" onChange={(e) => handleChange('goal_id', e.target.value)}>
+                        <MenuItem value=""><em>无</em></MenuItem>
+                        {goals.map(goal => <MenuItem key={goal.id} value={goal.id}>{goal.title}</MenuItem>)}
+                    </Select>
+                </FormControl>
+                <FormControl fullWidth margin="dense">
+                    <InputLabel>父任务</InputLabel>
+                    <Select value={formData.parent_task_id || ''} label="父任务" onChange={(e) => handleChange('parent_task_id', e.target.value)}>
+                        <MenuItem value=""><em>无</em></MenuItem>
+                        {tasks.filter(task => !task.parent_task_id && task.id !== data.id).map(task => <MenuItem key={task.id} value={task.id}>{task.title}</MenuItem>)}
+                    </Select>
+                </FormControl>
             </>
         );
       case 'goals':
