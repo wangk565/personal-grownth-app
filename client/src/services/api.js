@@ -72,3 +72,8 @@ export const search = {
 export const statistics = {
   get: () => apiClient.get('/statistics'),
 };
+
+// AI 助手 API
+export const ai = {
+  getAnalysis: () => apiClient.get('/ai/analysis'),
+};

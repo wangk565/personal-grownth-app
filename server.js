@@ -139,6 +139,26 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+// --- AI 分析辅助函数 ---
+const getTopKeywords = (texts, topN = 5) => {
+    const stopWords = new Set(['', ' ', 'a', 'an', 'the', 'is', 'are', 'was', 'were', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'about', 'as', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'its', 'our', 'their', 'and', 'or', 'but', 'if', 'so', 'because', 'while', 'that', 'which', 'who', 'what', 'when', 'where', 'why', 'how', 'to', 'do', 'be', 'have', 'go', 'get', 'make', 'can', 'will', 'may', 'would', 'should', 'could', 'not', 'no', 'yes', 'please', 'thanks', 'ok', '的', '了', '在', '是', '我', '你', '他', '她', '它', '我们', '你们', '他们', '一个', '这个', '那个', '和', '与', '或', '但', '如果', '所以', '因为', '当', '地', '得', '地', '着', '过', '也', '还', '就', '都', '把', '被', '会', '能', '想', '要', '做', '去', '看', '说', '知道', '完成', '学习', '一个', '目标', '任务']);
+    const wordCounts = {};
+    
+    texts.forEach(text => {
+        if (typeof text !== 'string') return;
+        const words = text.toLowerCase().split(/[^a-zA-Z0-9\u4e00-\u9fa5]+/).filter(word => !stopWords.has(word) && word.length > 1);
+        words.forEach(word => {
+            wordCounts[word] = (wordCounts[word] || 0) + 1;
+        });
+    });
+
+    return Object.entries(wordCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, topN)
+        .map(entry => entry[0]);
+};
+
+
 // --- 受保护的 API ---
 
 // 灵感相关API
@@ -402,6 +422,78 @@ app.get('/api/search', authenticateToken, (req, res) => {
             if (completed === queries.length) {
                 results.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
                 res.json(results);
+            }
+        });
+    });
+});
+
+// --- AI 分析 API ---
+app.get('/api/ai/analysis', authenticateToken, (req, res) => {
+    const userId = req.user.id;
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    const dateLimit = oneMonthAgo.toISOString();
+
+    const queries = {
+        inspirations: `SELECT content, tags FROM inspirations WHERE user_id = ? AND created_at >= ?`,
+        knowledge: `SELECT title, content, category FROM knowledge WHERE user_id = ? AND created_at >= ?`,
+        tasks: `SELECT title, description, status FROM tasks WHERE user_id = ? AND created_at >= ?`,
+        goals: `SELECT title, description, progress FROM goals WHERE user_id = ? AND created_at >= ?`,
+    };
+
+    const results = {};
+    let completed = 0;
+
+    Object.keys(queries).forEach(key => {
+        db.all(queries[key], [userId, dateLimit], (err, rows) => {
+            if (err) {
+                console.error(`Error fetching ${key}:`, err);
+                results[key] = [];
+            } else {
+                results[key] = rows;
+            }
+            completed++;
+
+            if (completed === Object.keys(queries).length) {
+                // --- 数据分析 ---
+                const analysis = {};
+                const allText = [
+                    ...results.inspirations.map(i => `${i.content} ${i.tags}`),
+                    ...results.knowledge.map(k => `${k.title} ${k.content} ${k.category}`),
+                    ...results.tasks.map(t => `${t.title} ${t.description}`),
+                    ...results.goals.map(g => `${g.title} ${g.description}`),
+                ].join(' ');
+
+                analysis.keywords = getTopKeywords(allText.split(' '));
+
+                const completedTasks = results.tasks.filter(t => t.status === 'completed').length;
+                const totalTasks = results.tasks.length;
+                analysis.taskCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+                const activeGoals = results.goals.filter(g => g.progress < 100);
+                analysis.activeGoalsCount = activeGoals.length;
+                analysis.avgGoalProgress = activeGoals.length > 0 ? Math.round(activeGoals.reduce((sum, g) => sum + g.progress, 0) / activeGoals.length) : 0;
+
+                // --- 生成建议 ---
+                const suggestions = [];
+                if (analysis.keywords.length > 0) {
+                    suggestions.push(`你近期的核心焦点似乎是：${analysis.keywords.join(', ')}。`);
+                }
+                suggestions.push(`你近期的任务完成率是 ${analysis.taskCompletionRate}%。${analysis.taskCompletionRate > 70 ? '做得不错，继续保持！' : '可以尝试将大任务分解成更小的步骤来提高效率。'}`);
+                if (analysis.activeGoalsCount > 0) {
+                    suggestions.push(`你当前有 ${analysis.activeGoalsCount} 个进行中的目标，平均进度为 ${analysis.avgGoalProgress}%。`);
+                } else {
+                    suggestions.push('你当前没有进行中的目标，考虑设立一些新目标来指引方向吧！');
+                }
+
+                // --- 生成搜索链接 ---
+                const searchBaseUrl = 'https://www.google.com/search?q=';
+                const recommendations = analysis.keywords.map(kw => ({
+                    title: `搜索：${kw} 相关文章`,
+                    url: searchBaseUrl + encodeURIComponent(kw)
+                }));
+
+                res.json({ suggestions, recommendations });
             }
         });
     });

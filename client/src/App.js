@@ -4,6 +4,7 @@ import Statistics from './components/Statistics';
 import SearchBar from './components/SearchBar';
 import EditModal from './components/EditModal';
 import LoginPage from './components/LoginPage';
+import AIHelper from './components/AIHelper';
 import { AuthContext } from './context/AuthContext';
 import * as api from './services/api';
 import {
@@ -43,7 +44,7 @@ function App() {
     goals: api.goals,
   };
 
-  const tabMap = ['inspirations', 'knowledge', 'tasks', 'goals', 'statistics'];
+  const tabMap = ['ai_helper', 'inspirations', 'knowledge', 'tasks', 'goals', 'statistics'];
 
   const fetchInspirations = useCallback(async () => {
     try {
@@ -327,6 +328,8 @@ function App() {
     );
 
     switch (tabMap[activeTab]) {
+        case 'ai_helper':
+            return <AIHelper />;
         case 'inspirations':
             return (
                 <>
@@ -502,6 +505,7 @@ function App() {
           </Box>
         </Toolbar>
         <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)} centered indicatorColor="secondary" textColor="inherit">
+          <Tab label="AI 成长助手" />
           <Tab label="灵感记录" />
           <Tab label="知识学习" />
           <Tab label="任务管理" />
