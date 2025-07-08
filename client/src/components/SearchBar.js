@@ -1,4 +1,12 @@
 import React, { useState } from 'react';
+import {
+  Box,
+  TextField,
+  IconButton,
+  InputAdornment
+} from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 
 const SearchBar = ({ onSearch }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,23 +22,49 @@ const SearchBar = ({ onSearch }) => {
   };
 
   return (
-    <div className="search-bar">
-      <form onSubmit={handleSearch}>
-        <div className="search-input-group">
-          <input
-            type="text"
-            placeholder="搜索灵感、知识、任务、目标..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-          <button type="submit" className="search-btn">搜索</button>
-          {searchTerm && (
-            <button type="button" onClick={handleClear} className="clear-btn">清除</button>
-          )}
-        </div>
-      </form>
-    </div>
+    <Box 
+      component="form" 
+      onSubmit={handleSearch} 
+      sx={{ 
+        display: 'flex', 
+        alignItems: 'center',
+        // We can give it a bit of style to blend in
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        '&:hover': {
+            backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        },
+        borderRadius: 1,
+        p: '2px 4px',
+      }}
+    >
+      <TextField
+        variant="standard" // Use standard variant for a cleaner look in the AppBar
+        placeholder="搜索..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        fullWidth
+        sx={{ 
+            color: 'inherit',
+            '& .MuiInput-underline:before': { borderBottomColor: 'rgba(255, 255, 255, 0.42)' },
+            '& .MuiInput-underline:hover:not(.Mui-disabled):before': { borderBottomColor: '#fff' },
+            '& .MuiInputBase-input': { color: '#fff', padding: '8px' },
+        }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon sx={{ color: '#fff' }} />
+            </InputAdornment>
+          ),
+          endAdornment: searchTerm && (
+            <InputAdornment position="end">
+              <IconButton onClick={handleClear} size="small" sx={{ color: '#fff' }}>
+                <ClearIcon />
+              </IconButton>
+            </InputAdornment>
+          )
+        }}
+      />
+    </Box>
   );
 };
 

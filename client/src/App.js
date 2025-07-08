@@ -1,14 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import Statistics from './components/Statistics';
 import SearchBar from './components/SearchBar';
 import EditModal from './components/EditModal';
+import LoginPage from './components/LoginPage';
+import { AuthContext } from './context/AuthContext';
+import * as api from './services/api';
+import {
+  AppBar, Box, Button, Card, CardContent, CardActions, CircularProgress, Container, Grid, Tabs, Tab, Toolbar, Typography, TextField, Select, MenuItem, FormControl, InputLabel, Slider, IconButton, Chip
+} from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
 import './App.css';
 
-const API_BASE = 'http://localhost:3001/api';
-
 function App() {
-  const [activeTab, setActiveTab] = useState('inspirations');
+  const { isAuthenticated, user, logout, loading } = useContext(AuthContext);
+
+  const [activeTab, setActiveTab] = useState(0);
   const [inspirations, setInspirations] = useState([]);
   const [knowledge, setKnowledge] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -17,84 +26,90 @@ function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // 编辑状态
   const [editModal, setEditModal] = useState({ show: false, type: '', data: null });
 
-  // 表单状态
   const [inspirationForm, setInspirationForm] = useState({ content: '', tags: '' });
   const [knowledgeForm, setKnowledgeForm] = useState({ title: '', content: '', category: '', source: '' });
   const [taskForm, setTaskForm] = useState({ title: '', description: '', priority: 'medium', due_date: '' });
   const [goalForm, setGoalForm] = useState({ title: '', description: '', type: 'weekly', target_date: '' });
   const [newCategory, setNewCategory] = useState('');
 
-  // 获取数据
-  useEffect(() => {
-    fetchAllData();
+  const apiMap = {
+    inspirations: api.inspirations,
+    knowledge: api.knowledge,
+    tasks: api.tasks,
+    goals: api.goals,
+  };
+
+  const tabMap = ['inspirations', 'knowledge', 'tasks', 'goals', 'statistics'];
+
+  const fetchInspirations = useCallback(async () => {
+    try {
+      const response = await api.inspirations.getAll();
+      setInspirations(response.data);
+    } catch (error) {
+      console.error('Error fetching inspirations:', error);
+    }
   }, []);
 
-  const fetchAllData = () => {
+  const fetchKnowledge = useCallback(async () => {
+    try {
+      const response = await api.knowledge.getAll();
+      setKnowledge(response.data);
+    } catch (error) {
+      console.error('Error fetching knowledge:', error);
+    }
+  }, []);
+
+  const fetchTasks = useCallback(async () => {
+    try {
+      const response = await api.tasks.getAll();
+      setTasks(response.data);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+    }
+  }, []);
+
+  const fetchGoals = useCallback(async () => {
+    try {
+      const response = await api.goals.getAll();
+      setGoals(response.data);
+    } catch (error) {
+      console.error('Error fetching goals:', error);
+    }
+  }, []);
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const response = await api.categories.getAll();
+      setCategories(response.data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  }, []);
+
+  const fetchAllData = useCallback(() => {
     fetchInspirations();
     fetchKnowledge();
     fetchTasks();
     fetchGoals();
     fetchCategories();
-  };
+  }, [fetchInspirations, fetchKnowledge, fetchTasks, fetchGoals, fetchCategories]);
 
-  const fetchInspirations = async () => {
-    try {
-      const response = await axios.get(`${API_BASE}/inspirations`);
-      setInspirations(response.data);
-    } catch (error) {
-      console.error('Error fetching inspirations:', error);
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchAllData();
     }
-  };
+  }, [isAuthenticated, fetchAllData]);
 
-  const fetchKnowledge = async () => {
-    try {
-      const response = await axios.get(`${API_BASE}/knowledge`);
-      setKnowledge(response.data);
-    } catch (error) {
-      console.error('Error fetching knowledge:', error);
-    }
-  };
-
-  const fetchTasks = async () => {
-    try {
-      const response = await axios.get(`${API_BASE}/tasks`);
-      setTasks(response.data);
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
-    }
-  };
-
-  const fetchGoals = async () => {
-    try {
-      const response = await axios.get(`${API_BASE}/goals`);
-      setGoals(response.data);
-    } catch (error) {
-      console.error('Error fetching goals:', error);
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const response = await axios.get(`${API_BASE}/categories`);
-      setCategories(response.data);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    }
-  };
-
-  // 搜索功能
   const handleSearch = async (searchTerm) => {
     if (!searchTerm.trim()) {
       setIsSearching(false);
       setSearchResults([]);
       return;
     }
-
     try {
-      const response = await axios.get(`${API_BASE}/search?q=${encodeURIComponent(searchTerm)}`);
+      const response = await api.search.run(searchTerm);
       setSearchResults(response.data);
       setIsSearching(true);
     } catch (error) {
@@ -102,11 +117,10 @@ function App() {
     }
   };
 
-  // 提交函数
   const handleInspirationSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_BASE}/inspirations`, inspirationForm);
+      await api.inspirations.create(inspirationForm);
       setInspirationForm({ content: '', tags: '' });
       fetchInspirations();
     } catch (error) {
@@ -117,7 +131,7 @@ function App() {
   const handleKnowledgeSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_BASE}/knowledge`, knowledgeForm);
+      await api.knowledge.create(knowledgeForm);
       setKnowledgeForm({ title: '', content: '', category: '', source: '' });
       fetchKnowledge();
     } catch (error) {
@@ -128,7 +142,7 @@ function App() {
   const handleTaskSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_BASE}/tasks`, taskForm);
+      await api.tasks.create(taskForm);
       setTaskForm({ title: '', description: '', priority: 'medium', due_date: '' });
       fetchTasks();
     } catch (error) {
@@ -139,7 +153,7 @@ function App() {
   const handleGoalSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_BASE}/goals`, goalForm);
+      await api.goals.create(goalForm);
       setGoalForm({ title: '', description: '', type: 'weekly', target_date: '' });
       fetchGoals();
     } catch (error) {
@@ -147,11 +161,10 @@ function App() {
     }
   };
 
-  // 添加新分类
   const handleAddCategory = async () => {
     if (!newCategory.trim()) return;
     try {
-      await axios.post(`${API_BASE}/categories`, { name: newCategory });
+      await api.categories.create({ name: newCategory });
       setNewCategory('');
       fetchCategories();
     } catch (error) {
@@ -159,48 +172,46 @@ function App() {
     }
   };
 
-  // 编辑和删除函数
   const handleEdit = (type, data) => {
     setEditModal({ show: true, type, data });
   };
 
   const handleDelete = async (type, id) => {
-    if (!window.confirm('确定要删除这条记录吗？')) return;
-    
-    try {
-      await axios.delete(`${API_BASE}/${type}/${id}`);
-      fetchAllData();
-    } catch (error) {
-      console.error('Error deleting item:', error);
+    if (window.confirm('确定要删除这条记录吗？') && apiMap[type]) {
+        try {
+            await apiMap[type].delete(id);
+            fetchAllData();
+        } catch (error) {
+            console.error(`Error deleting ${type}:`, error);
+        }
     }
   };
 
   const handleSaveEdit = async (type, id, data) => {
+    if (!apiMap[type]) return;
     try {
-      await axios.put(`${API_BASE}/${type}/${id}`, data);
+      await apiMap[type].update(id, data);
       setEditModal({ show: false, type: '', data: null });
       fetchAllData();
     } catch (error) {
-      console.error('Error updating item:', error);
+      console.error(`Error updating ${type}:`, error);
     }
   };
 
-  // 更新任务状态
   const updateTaskStatus = async (taskId, status) => {
     try {
       const task = tasks.find(t => t.id === taskId);
-      await axios.put(`${API_BASE}/tasks/${taskId}`, { ...task, status });
+      await api.tasks.update(taskId, { ...task, status });
       fetchTasks();
     } catch (error) {
       console.error('Error updating task:', error);
     }
   };
 
-  // 更新目标进度
   const updateGoalProgress = async (goalId, progress) => {
     try {
       const goal = goals.find(g => g.id === goalId);
-      await axios.put(`${API_BASE}/goals/${goalId}`, { ...goal, progress });
+      await api.goals.update(goalId, { ...goal, progress });
       fetchGoals();
     } catch (error) {
       console.error('Error updating goal progress:', error);
@@ -208,310 +219,238 @@ function App() {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('zh-CN');
   };
 
-  const highlightSearchTerm = (text, searchTerm) => {
-    if (!isSearching || !searchTerm) return text;
-    const regex = new RegExp(`(${searchTerm})`, 'gi');
-    return text.replace(regex, '<mark>$1</mark>');
-  };
+  if (loading) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><CircularProgress /></Box>;
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  const renderContent = () => {
+    if (isSearching) {
+        return (
+            <Grid container spacing={3}>
+                {searchResults.length > 0 ? searchResults.map(item => (
+                    <Grid item xs={12} sm={6} md={4} key={`${item.type}-${item.id}`}>
+                        <Card elevation={2}>
+                            <CardContent>
+                                <Typography variant="h6" gutterBottom>{item.title || item.content.substring(0, 50)}</Typography>
+                                <Chip label={item.type} size="small" sx={{ my: 1, bgcolor: '#eee' }} />
+                                <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>{item.content}</Typography>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                )) : <Typography sx={{p:3}}>没有找到匹配的内容。</Typography>}
+            </Grid>
+        )
+    }
+
+    const centeredFormContainer = (form) => (
+        <Box sx={{ maxWidth: 800, mx: 'auto', mb: 4 }}>
+            {form}
+        </Box>
+    );
+
+    switch (tabMap[activeTab]) {
+        case 'inspirations':
+            return (
+                <>
+                    {centeredFormContainer(
+                        <Card component="form" onSubmit={handleInspirationSubmit} sx={{ p: 2 }}>
+                            <Typography variant="h6" gutterBottom>记录新灵感</Typography>
+                            <TextField label="灵感内容" fullWidth multiline rows={3} value={inspirationForm.content} onChange={(e) => setInspirationForm({...inspirationForm, content: e.target.value})} required sx={{ mb: 2 }} />
+                            <TextField label="标签 (逗号分隔)" fullWidth value={inspirationForm.tags} onChange={(e) => setInspirationForm({...inspirationForm, tags: e.target.value})} sx={{ mb: 2 }} />
+                            <Button type="submit" variant="contained">添加灵感</Button>
+                        </Card>
+                    )}
+                    <Grid container spacing={3} justifyContent="center">
+                        {inspirations.map(item => (
+                            <Grid item xs={12} sm={6} md={4} key={item.id}>
+                                <Card elevation={2}>
+                                    <CardContent>
+                                        <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{item.content}</Typography>
+                                        <Box sx={{ mt: 2 }}>
+                                            {item.tags && item.tags.split(',').map(tag => tag.trim() && <Chip key={tag} label={tag.trim()} size="small" sx={{ mr: 1 }} />)}
+                                        </Box>
+                                    </CardContent>
+                                    <CardActions>
+                                        <IconButton size="small" onClick={() => handleEdit('inspirations', item)}><EditIcon /></IconButton>
+                                        <IconButton size="small" onClick={() => handleDelete('inspirations', item.id)}><DeleteIcon /></IconButton>
+                                    </CardActions>
+                                </Card>
+                            </Grid>
+                        ))}
+                    </Grid>
+                </>
+            );
+        case 'knowledge':
+            return (
+                <>
+                    {centeredFormContainer(
+                        <Card component="form" onSubmit={handleKnowledgeSubmit} sx={{ p: 2 }}>
+                            <Typography variant="h6" gutterBottom>记录新知识</Typography>
+                            <TextField label="标题" fullWidth value={knowledgeForm.title} onChange={(e) => setKnowledgeForm({...knowledgeForm, title: e.target.value})} required sx={{ mb: 2 }} />
+                            <TextField label="内容" fullWidth multiline rows={4} value={knowledgeForm.content} onChange={(e) => setKnowledgeForm({...knowledgeForm, content: e.target.value})} required sx={{ mb: 2 }} />
+                            <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
+                                <FormControl fullWidth>
+                                    <InputLabel>分类</InputLabel>
+                                    <Select value={knowledgeForm.category} label="分类" onChange={(e) => setKnowledgeForm({...knowledgeForm, category: e.target.value})}>
+                                        {categories.map(cat => <MenuItem key={cat.id} value={cat.name}>{cat.name}</MenuItem>)}
+                                    </Select>
+                                </FormControl>
+                                <TextField label="或添加新分类" size="small" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} />
+                                <Button onClick={handleAddCategory} variant="outlined" startIcon={<AddIcon />}>添加</Button>
+                            </Box>
+                            <TextField label="来源" fullWidth value={knowledgeForm.source} onChange={(e) => setKnowledgeForm({...knowledgeForm, source: e.target.value})} sx={{ mb: 2 }} />
+                            <Button type="submit" variant="contained">添加知识</Button>
+                        </Card>
+                    )}
+                    <Grid container spacing={3} justifyContent="center">
+                        {knowledge.map(item => (
+                            <Grid item xs={12} sm={6} md={4} key={item.id}>
+                                <Card elevation={2}>
+                                    <CardContent>
+                                        <Typography variant="h6" gutterBottom>{item.title}</Typography>
+                                        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>{item.content}</Typography>
+                                        <Chip label={item.category} size="small" sx={{ mt: 1 }} />
+                                    </CardContent>
+                                    <CardActions>
+                                        <IconButton size="small" onClick={() => handleEdit('knowledge', item)}><EditIcon /></IconButton>
+                                        <IconButton size="small" onClick={() => handleDelete('knowledge', item.id)}><DeleteIcon /></IconButton>
+                                    </CardActions>
+                                </Card>
+                            </Grid>
+                        ))}
+                    </Grid>
+                </>
+            );
+        case 'tasks':
+             return (
+                <>
+                    {centeredFormContainer(
+                        <Card component="form" onSubmit={handleTaskSubmit} sx={{ p: 2 }}>
+                            <Typography variant="h6" gutterBottom>添加新任务</Typography>
+                            <TextField label="标题" fullWidth value={taskForm.title} onChange={(e) => setTaskForm({...taskForm, title: e.target.value})} required sx={{ mb: 2 }} />
+                            <TextField label="描述" fullWidth multiline rows={3} value={taskForm.description} onChange={(e) => setTaskForm({...taskForm, description: e.target.value})} sx={{ mb: 2 }} />
+                            <FormControl fullWidth sx={{ mb: 2 }}>
+                                <InputLabel>优先级</InputLabel>
+                                <Select value={taskForm.priority} label="优先级" onChange={(e) => setTaskForm({...taskForm, priority: e.target.value})}>
+                                    <MenuItem value="low">低</MenuItem>
+                                    <MenuItem value="medium">中</MenuItem>
+                                    <MenuItem value="high">高</MenuItem>
+                                </Select>
+                            </FormControl>
+                            <TextField type="date" label="截止日期" fullWidth value={taskForm.due_date} onChange={(e) => setTaskForm({...taskForm, due_date: e.target.value})} InputLabelProps={{ shrink: true }} sx={{ mb: 2 }} />
+                            <Button type="submit" variant="contained">添加任务</Button>
+                        </Card>
+                    )}
+                    <Grid container spacing={3} justifyContent="center">
+                        {tasks.map(item => (
+                            <Grid item xs={12} sm={6} md={4} key={item.id}>
+                                <Card elevation={2}>
+                                    <CardContent>
+                                        <Typography variant="h6" gutterBottom>{item.title}</Typography>
+                                        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>{item.description}</Typography>
+                                        <Chip label={`优先级: ${item.priority}`} size="small" sx={{ mt: 1 }} />
+                                        <Typography variant="caption" display="block" sx={{ mt: 1 }}>截止日期: {formatDate(item.due_date)}</Typography>
+                                    </CardContent>
+                                    <CardActions>
+                                        <FormControl fullWidth size="small">
+                                            <InputLabel>状态</InputLabel>
+                                            <Select value={item.status} label="状态" onChange={(e) => updateTaskStatus(item.id, e.target.value)}>
+                                                <MenuItem value="pending">待完成</MenuItem>
+                                                <MenuItem value="in_progress">进行中</MenuItem>
+                                                <MenuItem value="completed">已完成</MenuItem>
+                                            </Select>
+                                        </FormControl>
+                                        <IconButton size="small" onClick={() => handleEdit('tasks', item)}><EditIcon /></IconButton>
+                                        <IconButton size="small" onClick={() => handleDelete('tasks', item.id)}><DeleteIcon /></IconButton>
+                                    </CardActions>
+                                </Card>
+                            </Grid>
+                        ))}
+                    </Grid>
+                </>
+            );
+        case 'goals':
+            return (
+                <>
+                    {centeredFormContainer(
+                        <Card component="form" onSubmit={handleGoalSubmit} sx={{ p: 2 }}>
+                            <Typography variant="h6" gutterBottom>设立新目标</Typography>
+                            <TextField label="标题" fullWidth value={goalForm.title} onChange={(e) => setGoalForm({...goalForm, title: e.target.value})} required sx={{ mb: 2 }} />
+                            <TextField label="描述" fullWidth multiline rows={3} value={goalForm.description} onChange={(e) => setGoalForm({...goalForm, description: e.target.value})} sx={{ mb: 2 }} />
+                            <FormControl fullWidth sx={{ mb: 2 }}>
+                                <InputLabel>类型</InputLabel>
+                                <Select value={goalForm.type} label="类型" onChange={(e) => setGoalForm({...goalForm, type: e.target.value})}>
+                                    <MenuItem value="weekly">周目标</MenuItem>
+                                    <MenuItem value="monthly">月目标</MenuItem>
+                                    <MenuItem value="yearly">年目标</MenuItem>
+                                </Select>
+                            </FormControl>
+                            <TextField type="date" label="目标日期" fullWidth value={goalForm.target_date} onChange={(e) => setGoalForm({...goalForm, target_date: e.target.value})} InputLabelProps={{ shrink: true }} sx={{ mb: 2 }} />
+                            <Button type="submit" variant="contained">设立目标</Button>
+                        </Card>
+                    )}
+                    <Grid container spacing={3} justifyContent="center">
+                        {goals.map(item => (
+                            <Grid item xs={12} sm={6} md={4} key={item.id}>
+                                <Card elevation={2}>
+                                    <CardContent>
+                                        <Typography variant="h6" gutterBottom>{item.title}</Typography>
+                                        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>{item.description}</Typography>
+                                        <Chip label={item.type} size="small" sx={{ mt: 1 }} />
+                                        <Typography variant="caption" display="block" sx={{ mt: 1 }}>目标日期: {formatDate(item.target_date)}</Typography>
+                                        <Typography variant="caption" display="block" sx={{ mt: 1 }}>进度: {item.progress || 0}%</Typography>
+                                        <Slider value={item.progress || 0} onChange={(e, newValue) => updateGoalProgress(item.id, newValue)} aria-labelledby="input-slider" sx={{ mt: 1 }} />
+                                    </CardContent>
+                                    <CardActions>
+                                        <IconButton size="small" onClick={() => handleEdit('goals', item)}><EditIcon /></IconButton>
+                                        <IconButton size="small" onClick={() => handleDelete('goals', item.id)}><DeleteIcon /></IconButton>
+                                    </CardActions>
+                                </Card>
+                            </Grid>
+                        ))}
+                    </Grid>
+                </>
+            );
+        case 'statistics':
+            return <Statistics />;
+        default:
+            return null;
+    }
+  }
 
   return (
-    <div className="App">
-      <header className="app-header">
-        <h1>个人成长管理</h1>
-        <SearchBar onSearch={handleSearch} />
-        <nav>
-          <button 
-            className={activeTab === 'inspirations' ? 'active' : ''} 
-            onClick={() => { setActiveTab('inspirations'); setIsSearching(false); }}
-          >
-            灵感记录
-          </button>
-          <button 
-            className={activeTab === 'knowledge' ? 'active' : ''} 
-            onClick={() => { setActiveTab('knowledge'); setIsSearching(false); }}
-          >
-            知识学习
-          </button>
-          <button 
-            className={activeTab === 'tasks' ? 'active' : ''} 
-            onClick={() => { setActiveTab('tasks'); setIsSearching(false); }}
-          >
-            任务管理
-          </button>
-          <button 
-            className={activeTab === 'goals' ? 'active' : ''} 
-            onClick={() => { setActiveTab('goals'); setIsSearching(false); }}
-          >
-            目标规划
-          </button>
-          <button 
-            className={activeTab === 'statistics' ? 'active' : ''} 
-            onClick={() => { setActiveTab('statistics'); setIsSearching(false); }}
-          >
-            成长统计
-          </button>
-        </nav>
-      </header>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'grey.100' }}>
+      <AppBar position="sticky">
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            个人成长管理
+          </Typography>
+          <SearchBar onSearch={handleSearch} />
+          <Box sx={{ ml: 2, display: 'flex', alignItems: 'center' }}>
+            <Typography sx={{ mr: 2 }}>你好, {user.username}</Typography>
+            <Button color="inherit" onClick={logout}>注销</Button>
+          </Box>
+        </Toolbar>
+        <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)} centered indicatorColor="secondary" textColor="inherit">
+          <Tab label="灵感记录" />
+          <Tab label="知识学习" />
+          <Tab label="任务管理" />
+          <Tab label="目标规划" />
+          <Tab label="成长统计" />
+        </Tabs>
+      </AppBar>
 
-      <main className="main-content">
-        {isSearching && (
-          <div className="tab-content">
-            <h2>搜索结果</h2>
-            <div className="search-results">
-              {searchResults.length > 0 ? (
-                <div className="items-list">
-                  {searchResults.map(item => (
-                    <div key={`${item.type}-${item.id}`} className="item-card search-result">
-                      <div className="search-type">{item.type === 'inspiration' ? '灵感' : item.type === 'knowledge' ? '知识' : item.type === 'task' ? '任务' : '目标'}</div>
-                      <h3 dangerouslySetInnerHTML={{__html: highlightSearchTerm(item.title || item.content.substring(0, 50), '')}}></h3>
-                      <p dangerouslySetInnerHTML={{__html: highlightSearchTerm(item.content || '', '')}}></p>
-                      <span className="date">{formatDate(item.created_at)}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p>没有找到匹配的内容</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {!isSearching && activeTab === 'inspirations' && (
-          <div className="tab-content">
-            <h2>灵感记录</h2>
-            <form onSubmit={handleInspirationSubmit} className="form">
-              <textarea
-                placeholder="记录你的灵感..."
-                value={inspirationForm.content}
-                onChange={(e) => setInspirationForm({...inspirationForm, content: e.target.value})}
-                required
-              />
-              <input
-                type="text"
-                placeholder="标签 (用逗号分隔)"
-                value={inspirationForm.tags}
-                onChange={(e) => setInspirationForm({...inspirationForm, tags: e.target.value})}
-              />
-              <button type="submit">添加灵感</button>
-            </form>
-            <div className="items-list">
-              {inspirations.map(item => (
-                <div key={item.id} className="item-card">
-                  <p>{item.content}</p>
-                  <div className="item-meta">
-                    <span className="tags">{item.tags}</span>
-                    <span className="date">{formatDate(item.created_at)}</span>
-                    <div className="item-actions">
-                      <button onClick={() => handleEdit('inspirations', item)} className="edit-btn">编辑</button>
-                      <button onClick={() => handleDelete('inspirations', item.id)} className="delete-btn">删除</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {!isSearching && activeTab === 'knowledge' && (
-          <div className="tab-content">
-            <h2>知识学习</h2>
-            <form onSubmit={handleKnowledgeSubmit} className="form">
-              <input
-                type="text"
-                placeholder="知识标题"
-                value={knowledgeForm.title}
-                onChange={(e) => setKnowledgeForm({...knowledgeForm, title: e.target.value})}
-                required
-              />
-              <textarea
-                placeholder="知识内容"
-                value={knowledgeForm.content}
-                onChange={(e) => setKnowledgeForm({...knowledgeForm, content: e.target.value})}
-                required
-              />
-              <div className="category-input">
-                <select
-                  value={knowledgeForm.category}
-                  onChange={(e) => setKnowledgeForm({...knowledgeForm, category: e.target.value})}
-                >
-                  <option value="">选择分类</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.name}>{cat.name}</option>
-                  ))}
-                </select>
-                <div className="add-category">
-                  <input
-                    type="text"
-                    placeholder="添加新分类"
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                  />
-                  <button type="button" onClick={handleAddCategory}>添加</button>
-                </div>
-              </div>
-              <input
-                type="text"
-                placeholder="来源"
-                value={knowledgeForm.source}
-                onChange={(e) => setKnowledgeForm({...knowledgeForm, source: e.target.value})}
-              />
-              <button type="submit">添加知识</button>
-            </form>
-            <div className="items-list">
-              {knowledge.map(item => (
-                <div key={item.id} className="item-card">
-                  <h3>{item.title}</h3>
-                  <p>{item.content}</p>
-                  <div className="item-meta">
-                    <span className="category">{item.category}</span>
-                    <span className="source">{item.source}</span>
-                    <span className="date">{formatDate(item.created_at)}</span>
-                    <div className="item-actions">
-                      <button onClick={() => handleEdit('knowledge', item)} className="edit-btn">编辑</button>
-                      <button onClick={() => handleDelete('knowledge', item.id)} className="delete-btn">删除</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {!isSearching && activeTab === 'tasks' && (
-          <div className="tab-content">
-            <h2>任务管理</h2>
-            <form onSubmit={handleTaskSubmit} className="form">
-              <input
-                type="text"
-                placeholder="任务标题"
-                value={taskForm.title}
-                onChange={(e) => setTaskForm({...taskForm, title: e.target.value})}
-                required
-              />
-              <textarea
-                placeholder="任务描述"
-                value={taskForm.description}
-                onChange={(e) => setTaskForm({...taskForm, description: e.target.value})}
-              />
-              <select
-                value={taskForm.priority}
-                onChange={(e) => setTaskForm({...taskForm, priority: e.target.value})}
-              >
-                <option value="low">低优先级</option>
-                <option value="medium">中优先级</option>
-                <option value="high">高优先级</option>
-              </select>
-              <input
-                type="date"
-                value={taskForm.due_date}
-                onChange={(e) => setTaskForm({...taskForm, due_date: e.target.value})}
-              />
-              <button type="submit">添加任务</button>
-            </form>
-            <div className="items-list">
-              {tasks.map(task => (
-                <div key={task.id} className={`item-card task-card ${task.status}`}>
-                  <h3>{task.title}</h3>
-                  <p>{task.description}</p>
-                  <div className="task-actions">
-                    <span className={`priority ${task.priority}`}>{task.priority}</span>
-                    {task.due_date && <span className="due-date">截止: {formatDate(task.due_date)}</span>}
-                    <select
-                      value={task.status}
-                      onChange={(e) => updateTaskStatus(task.id, e.target.value)}
-                    >
-                      <option value="pending">待完成</option>
-                      <option value="in_progress">进行中</option>
-                      <option value="completed">已完成</option>
-                    </select>
-                    <div className="item-actions">
-                      <button onClick={() => handleEdit('tasks', task)} className="edit-btn">编辑</button>
-                      <button onClick={() => handleDelete('tasks', task.id)} className="delete-btn">删除</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {!isSearching && activeTab === 'goals' && (
-          <div className="tab-content">
-            <h2>目标规划</h2>
-            <form onSubmit={handleGoalSubmit} className="form">
-              <input
-                type="text"
-                placeholder="目标标题"
-                value={goalForm.title}
-                onChange={(e) => setGoalForm({...goalForm, title: e.target.value})}
-                required
-              />
-              <textarea
-                placeholder="目标描述"
-                value={goalForm.description}
-                onChange={(e) => setGoalForm({...goalForm, description: e.target.value})}
-              />
-              <select
-                value={goalForm.type}
-                onChange={(e) => setGoalForm({...goalForm, type: e.target.value})}
-              >
-                <option value="weekly">周目标</option>
-                <option value="monthly">月目标</option>
-                <option value="yearly">年目标</option>
-              </select>
-              <input
-                type="date"
-                value={goalForm.target_date}
-                onChange={(e) => setGoalForm({...goalForm, target_date: e.target.value})}
-                required
-              />
-              <button type="submit">添加目标</button>
-            </form>
-            <div className="items-list">
-              {goals.map(goal => (
-                <div key={goal.id} className="item-card goal-card">
-                  <h3>{goal.title}</h3>
-                  <p>{goal.description}</p>
-                  <div className="goal-meta">
-                    <span className={`goal-type ${goal.type}`}>{goal.type}</span>
-                    <span className="target-date">目标日期: {formatDate(goal.target_date)}</span>
-                    <div className="progress">
-                      <div className="progress-controls">
-                        <span>进度: {goal.progress}%</span>
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={goal.progress}
-                          onChange={(e) => updateGoalProgress(goal.id, parseInt(e.target.value))}
-                          className="progress-slider"
-                        />
-                      </div>
-                      <div className="progress-bar">
-                        <div 
-                          className="progress-fill" 
-                          style={{width: `${goal.progress}%`}}
-                        ></div>
-                      </div>
-                    </div>
-                    <div className="item-actions">
-                      <button onClick={() => handleEdit('goals', goal)} className="edit-btn">编辑</button>
-                      <button onClick={() => handleDelete('goals', goal.id)} className="delete-btn">删除</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {!isSearching && activeTab === 'statistics' && (
-          <Statistics />
-        )}
-      </main>
+      <Container component="main" sx={{ py: 4, flexGrow: 1 }}>
+        {renderContent()}
+      </Container>
 
       {editModal.show && (
         <EditModal
@@ -522,7 +461,7 @@ function App() {
           onClose={() => setEditModal({ show: false, type: '', data: null })}
         />
       )}
-    </div>
+    </Box>
   );
 }
 

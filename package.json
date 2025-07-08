@@ -4,20 +4,22 @@
     "description": "Personal Growth Management App",
     "main": "server.js",
     "scripts": {
-      "start": "node server.js",
-      "dev": "concurrently \"npm run server\" \"npm run client\"",
-      "server": "nodemon server.js",
-      "client": "cd client && npm start",
-      "install-client": "cd client && npm install",
-      "build": "cd client && npm run build"
+        "start": "node server.js",
+        "dev": "concurrently \"npm run server\" \"npm run client\"",
+        "server": "nodemon server.js",
+        "client": "cd client && npm start",
+        "install-client": "cd client && npm install",
+        "build": "cd client && npm run build"
     },
     "dependencies": {
-      "express": "^4.18.2",
-      "sqlite3": "^5.1.6",
-      "cors": "^2.8.5"
+        "bcryptjs": "^3.0.2",
+        "cors": "^2.8.5",
+        "express": "^4.18.2",
+        "jsonwebtoken": "^9.0.2",
+        "sqlite3": "^5.1.6"
     },
     "devDependencies": {
-      "nodemon": "^3.0.1",
-      "concurrently": "^8.2.0"
+        "concurrently": "^8.2.0",
+        "nodemon": "^3.0.1"
     }
-  }
+}

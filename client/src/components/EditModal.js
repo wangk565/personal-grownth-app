@@ -1,10 +1,33 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Slider,
+  Typography
+} from '@mui/material';
 
 const EditModal = ({ type, data, categories, onSave, onClose }) => {
   const [formData, setFormData] = useState({});
 
   useEffect(() => {
-    setFormData({ ...data });
+    // 当传入的数据变化时，更新表单状态
+    // 对于日期，需要格式化为 YYYY-MM-DD
+    const initialData = { ...data };
+    if (initialData.due_date) {
+        initialData.due_date = initialData.due_date.split('T')[0];
+    }
+    if (initialData.target_date) {
+        initialData.target_date = initialData.target_date.split('T')[0];
+    }
+    setFormData(initialData);
   }, [data]);
 
   const handleSubmit = (e) => {
@@ -16,200 +39,105 @@ const EditModal = ({ type, data, categories, onSave, onClose }) => {
     setFormData({ ...formData, [field]: value });
   };
 
+  const typeTitleMap = {
+      inspirations: '灵感',
+      knowledge: '知识',
+      tasks: '任务',
+      goals: '目标'
+  }
+
   const renderForm = () => {
     switch (type) {
       case 'inspirations':
         return (
           <>
-            <div className="form-group">
-              <label>灵感内容</label>
-              <textarea
-                value={formData.content || ''}
-                onChange={(e) => handleChange('content', e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>标签</label>
-              <input
-                type="text"
-                value={formData.tags || ''}
-                onChange={(e) => handleChange('tags', e.target.value)}
-              />
-            </div>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="灵感内容"
+              type="text"
+              fullWidth
+              multiline
+              rows={4}
+              value={formData.content || ''}
+              onChange={(e) => handleChange('content', e.target.value)}
+              variant="outlined"
+            />
+            <TextField
+              margin="dense"
+              label="标签 (用逗号分隔)"
+              type="text"
+              fullWidth
+              value={formData.tags || ''}
+              onChange={(e) => handleChange('tags', e.target.value)}
+              variant="outlined"
+            />
           </>
         );
-      
       case 'knowledge':
         return (
-          <>
-            <div className="form-group">
-              <label>标题</label>
-              <input
-                type="text"
-                value={formData.title || ''}
-                onChange={(e) => handleChange('title', e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>内容</label>
-              <textarea
-                value={formData.content || ''}
-                onChange={(e) => handleChange('content', e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>分类</label>
-              <select
-                value={formData.category || ''}
-                onChange={(e) => handleChange('category', e.target.value)}
-              >
-                <option value="">选择分类</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.name}>{cat.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label>来源</label>
-              <input
-                type="text"
-                value={formData.source || ''}
-                onChange={(e) => handleChange('source', e.target.value)}
-              />
-            </div>
-          </>
+            <>
+                <TextField autoFocus margin="dense" label="标题" type="text" fullWidth value={formData.title || ''} onChange={(e) => handleChange('title', e.target.value)} variant="outlined" />
+                <TextField margin="dense" label="内容" type="text" fullWidth multiline rows={4} value={formData.content || ''} onChange={(e) => handleChange('content', e.target.value)} variant="outlined" />
+                <FormControl fullWidth margin="dense">
+                    <InputLabel>分类</InputLabel>
+                    <Select value={formData.category || ''} label="分类" onChange={(e) => handleChange('category', e.target.value)}>
+                        {categories.map(cat => <MenuItem key={cat.id} value={cat.name}>{cat.name}</MenuItem>)}
+                    </Select>
+                </FormControl>
+                <TextField margin="dense" label="来源" type="text" fullWidth value={formData.source || ''} onChange={(e) => handleChange('source', e.target.value)} variant="outlined" />
+            </>
         );
-      
       case 'tasks':
         return (
-          <>
-            <div className="form-group">
-              <label>标题</label>
-              <input
-                type="text"
-                value={formData.title || ''}
-                onChange={(e) => handleChange('title', e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>描述</label>
-              <textarea
-                value={formData.description || ''}
-                onChange={(e) => handleChange('description', e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <label>优先级</label>
-              <select
-                value={formData.priority || 'medium'}
-                onChange={(e) => handleChange('priority', e.target.value)}
-              >
-                <option value="low">低优先级</option>
-                <option value="medium">中优先级</option>
-                <option value="high">高优先级</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>截止日期</label>
-              <input
-                type="date"
-                value={formData.due_date || ''}
-                onChange={(e) => handleChange('due_date', e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <label>状态</label>
-              <select
-                value={formData.status || 'pending'}
-                onChange={(e) => handleChange('status', e.target.value)}
-              >
-                <option value="pending">待完成</option>
-                <option value="in_progress">进行中</option>
-                <option value="completed">已完成</option>
-              </select>
-            </div>
-          </>
+            <>
+                <TextField autoFocus margin="dense" label="标题" type="text" fullWidth value={formData.title || ''} onChange={(e) => handleChange('title', e.target.value)} variant="outlined" />
+                <TextField margin="dense" label="描述" type="text" fullWidth multiline rows={3} value={formData.description || ''} onChange={(e) => handleChange('description', e.target.value)} variant="outlined" />
+                <FormControl fullWidth margin="dense">
+                    <InputLabel>优先级</InputLabel>
+                    <Select value={formData.priority || 'medium'} label="优先级" onChange={(e) => handleChange('priority', e.target.value)}>
+                        <MenuItem value="low">低</MenuItem>
+                        <MenuItem value="medium">中</MenuItem>
+                        <MenuItem value="high">高</MenuItem>
+                    </Select>
+                </FormControl>
+                <TextField margin="dense" label="截止日期" type="date" fullWidth InputLabelProps={{ shrink: true }} value={formData.due_date || ''} onChange={(e) => handleChange('due_date', e.target.value)} />
+            </>
         );
-      
       case 'goals':
         return (
-          <>
-            <div className="form-group">
-              <label>标题</label>
-              <input
-                type="text"
-                value={formData.title || ''}
-                onChange={(e) => handleChange('title', e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>描述</label>
-              <textarea
-                value={formData.description || ''}
-                onChange={(e) => handleChange('description', e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <label>类型</label>
-              <select
-                value={formData.type || 'weekly'}
-                onChange={(e) => handleChange('type', e.target.value)}
-              >
-                <option value="weekly">周目标</option>
-                <option value="monthly">月目标</option>
-                <option value="yearly">年目标</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>目标日期</label>
-              <input
-                type="date"
-                value={formData.target_date || ''}
-                onChange={(e) => handleChange('target_date', e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>进度 ({formData.progress || 0}%)</label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={formData.progress || 0}
-                onChange={(e) => handleChange('progress', parseInt(e.target.value))}
-              />
-            </div>
-          </>
+            <>
+                <TextField autoFocus margin="dense" label="标题" type="text" fullWidth value={formData.title || ''} onChange={(e) => handleChange('title', e.target.value)} variant="outlined" />
+                <TextField margin="dense" label="描述" type="text" fullWidth multiline rows={3} value={formData.description || ''} onChange={(e) => handleChange('description', e.target.value)} variant="outlined" />
+                <FormControl fullWidth margin="dense">
+                    <InputLabel>类型</InputLabel>
+                    <Select value={formData.type || 'weekly'} label="类型" onChange={(e) => handleChange('type', e.target.value)}>
+                        <MenuItem value="weekly">周目标</MenuItem>
+                        <MenuItem value="monthly">月目标</MenuItem>
+                        <MenuItem value="yearly">年目标</MenuItem>
+                    </Select>
+                </FormControl>
+                <TextField margin="dense" label="目标日期" type="date" fullWidth InputLabelProps={{ shrink: true }} value={formData.target_date || ''} onChange={(e) => handleChange('target_date', e.target.value)} />
+                <Typography gutterBottom sx={{mt: 2}}>进度: {formData.progress || 0}%</Typography>
+                <Slider value={formData.progress || 0} onChange={(e, newValue) => handleChange('progress', newValue)} aria-labelledby="input-slider" />
+            </>
         );
-      
       default:
         return null;
     }
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal">
-        <div className="modal-header">
-          <h3>编辑{type === 'inspirations' ? '灵感' : type === 'knowledge' ? '知识' : type === 'tasks' ? '任务' : '目标'}</h3>
-          <button className="close-btn" onClick={onClose}>×</button>
-        </div>
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body">
-            {renderForm()}
-          </div>
-          <div className="modal-footer">
-            <button type="button" onClick={onClose} className="cancel-btn">取消</button>
-            <button type="submit" className="save-btn">保存</button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Dialog open={true} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>编辑{typeTitleMap[type]}</DialogTitle>
+      <DialogContent>
+        {renderForm()}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>取消</Button>
+        <Button onClick={handleSubmit} variant="contained">保存</Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 
